@@ -11,6 +11,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 
 import mongodb_client
+import news_topic_modeling_service_client
+
 from cloudAMQP_client import CloudAMQPClient
 
 # Use your own Cloud AMQP queue
@@ -59,6 +61,12 @@ def handle_message(msg):
                 print "Duplicated news. Ignore."
                 return
     task['publishedAt'] = parser.parse(task['publishedAt'])
+
+    # Classify news
+    title = task['title']
+    if title is not None:
+        topic = news_topic_modeling_service_client.classify(description)
+        task['class'] = topic
 
     db[NEWS_TABLE_NAME].replace_one({'digest': task['digest']}, task, upsert=True)
 
